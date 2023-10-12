@@ -8,13 +8,13 @@ This folder stores all used datasets. [Source](https://traffic-signal-control.gi
 * Distance between intersections: 600m
 * Flow: Flat and Peak 
 
-## Manhattan
+### Manhattan
 * Size: 16*3
 * Distance bewteen intersections: 100m(NS), 350m(EW)
 
-## Syn
+### Syn
 * Size: 4*4
 * Distance bewteen intersections: 300m
-## Syn2
+### Syn2
 * Size: 4*4
 * Distance bewteen intersections: 600m
