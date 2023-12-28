@@ -66,6 +66,27 @@ def linear_opt_prog(row, col):
     # print(m.Solution)
     return variable_dict
 
+def verify_region_assignment(row,col,assignment):
+    """
+    verify whether the assignemtn fit constraint: union and disjoint
+    :param row:
+    :param col:
+    :param assignment:
+    :return:
+    """
+    itsx_union=set()
+    for region in assignment:
+        for itsx in region:
+            if itsx=='dummy':
+                continue
+            if itsx_union.__contains__(itsx):
+                raise Exception("Joint Region")
+            else:
+                itsx_union.add(itsx)
+
+    if len(itsx_union)!=row*col:
+        raise Exception("Missing itsx")
+    print("verified good")
 
 def construct_configuration(centers_coordinates, row, col, shuffle=False):
     """
@@ -117,3 +138,4 @@ if __name__ == "__main__":
     print(centers_coordinate)
     region_assignment = construct_configuration(centers_coordinate, row, col,shuffle=True)
     print(region_assignment)
+    verify_region_assignment(row,col,region_assignment)
