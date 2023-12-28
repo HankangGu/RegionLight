@@ -114,6 +114,7 @@ def pipeline(env,agents,itsx_assignment,EXP_CONFIG,ENV_CONFIG):
             step_itsx_reward.append([value for _,value in next_states.items()])
             episode_reward.append(np.average(rewards))
             """-----------------"""
+            obs=next_obs
         """----update episode log------"""
         episode_throughput.append(env.get_throughput())
         episode_travel_time.append(env.get_average_travel_time())
