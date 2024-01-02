@@ -111,14 +111,14 @@ def pipeline(env,agents,itsx_assignment,EXP_CONFIG,ENV_CONFIG):
                 if global_step % EXP_CONFIG["LEARNING_INTERVAL"] == 0:
                     agent_learn()
             """----update step log---"""
-            step_itsx_reward.append([value for _,value in next_states.items()])
+            step_itsx_reward.append([value for _,value in itsx_rewards.items()])
             episode_reward.append(np.average(rewards))
             """-----------------"""
             obs=next_obs
         """----update episode log------"""
         episode_throughput.append(env.get_throughput())
         episode_travel_time.append(env.get_average_travel_time())
-        episode_intersection_level_rewards.append(step_itsx_reward)
+        episode_intersection_level_rewards.append(np.array(step_itsx_reward))
         """----------------------------"""
         log_msg={
             "episode":episode,
