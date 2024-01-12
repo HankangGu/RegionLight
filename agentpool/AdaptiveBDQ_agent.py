@@ -30,43 +30,9 @@ def build_network(state_dim, action_dim, sub_action_num):
         # subaction_q_value = common_state_value + (action_branch_layer -tf.expand_dims( tf.reduce_mean(action_branch_layer,1),1))
         # subaction_q_value = common_state_value + (action_branch_layer - tf.maximum(action_branch_layer))
         subaction_q_layers.append(subaction_q_value)
-
-    model = tf.keras.Model(state_input, tf.convert_to_tensor(subaction_q_layers))
+    subaction_q_layers = tf.stack(subaction_q_layers, axis=1)
+    model = tf.keras.Model(state_input, subaction_q_layers)
     return model
-
-
-def build_network_double_branch(state_dim, action_dim, sub_action_num):
-    print("build Braching DQ network")
-    flattened_state_input = layers.Input(shape=(state_dim,))  # input shape (intersection_n*agent_o,1)
-    # more than one intersection to control
-    state_input_list = tf.split(flattened_state_input, [25 for _ in range(5)], axis=1)  # split input into multi branch
-    state_action_embed_list = []
-    for i in range(5):
-        state_input = state_input_list[i]
-        state_embeded = layers.Dense(64, activation="relu")(state_input)
-        state_action_embed_list.append(state_embeded)
-    concat = layers.Concatenate()(state_action_embed_list)
-    # build shared representation hidden layer
-    shared_representation = layers.Dense(512, activation="relu")(concat)
-    shared_representation = layers.Dense(256, activation="relu")(shared_representation)
-    # build common state value layer
-    common_state_value = layers.Dense(128, activation="relu")(shared_representation)
-    common_state_value = layers.Dense(1)(common_state_value)
-    # build action branch q value layer iteratively
-    subaction_q_layers = []
-    subaction_advantage_layers = []
-    for _ in range(action_dim):
-        action_branch_layer = layers.Dense(128, activation="relu")(shared_representation)
-        action_branch_layer = layers.Dense(sub_action_num)(action_branch_layer)
-        subaction_advantage_layers.append(action_branch_layer)
-        subaction_q_value = common_state_value + (action_branch_layer - tf.reduce_mean(action_branch_layer))
-        # subaction_q_value = common_state_value + (action_branch_layer -tf.expand_dims( tf.reduce_mean(action_branch_layer,1),1))
-        # subaction_q_value = common_state_value + (action_branch_layer - tf.maximum(action_branch_layer))
-        subaction_q_layers.append(subaction_q_value)
-
-    model = tf.keras.Model(flattened_state_input, tf.convert_to_tensor(subaction_q_layers))
-    return model
-
 
 class AdaptiveBDQ_agent:
     def __init__(self,
@@ -129,7 +95,7 @@ class AdaptiveBDQ_agent:
         """
         # print()
         state = state[np.newaxis, :]
-        action_branch_value = self.eval_model(state)
+        action_branch_value = self.eval_model(state)[0]
         joint_action = []
         if np.random.random() > self.epsilon:
             # greedy choice
@@ -181,7 +147,7 @@ class AdaptiveBDQ_agent:
     @tf.function
     def update_gradient(self, s, a, r, s_):
         with tf.GradientTape() as tape:
-            q_eval = tf.transpose(self.eval_model(s), perm=[1, 0, 2])  # reshape to (batch,branch,subaction)
+            q_eval = self.eval_model(s)
             q_target = q_eval.numpy().copy()
             # mask construction
             eval_act_index = a.numpy().astype(int)  # action index of experience
@@ -195,13 +161,12 @@ class AdaptiveBDQ_agent:
             q_target = tf.multiply(q_target, eval_act_index_reverse_mask)  # remove the value on eval index
 
             # on policy estimate next value
-            q_next_eval = tf.transpose(self.eval_model(s_), perm=[1, 0, 2]).numpy().copy()
+            q_next_eval = self.eval_model(s_).numpy().copy()
             greedy_next_action = np.argmax(q_next_eval, axis=2)  # get greedy action index of next eval
             greedy_next_action_mask = tf.one_hot(greedy_next_action,
                                                  self.subaction_num)  # mask to select only correpsond q value
 
-            q_target_s_next = tf.transpose(self.target_model(s_),
-                                           perm=[1, 0, 2]).numpy().copy()  # compute with target network estimate
+            q_target_s_next = self.target_model(s_).numpy().copy()  # compute with target network estimate
             masked_q_target_s_next = tf.multiply(q_target_s_next,
                                                  greedy_next_action_mask)  # selected q value based on on-policy greedy action
             if self.td_operator_type == 'MEAN':

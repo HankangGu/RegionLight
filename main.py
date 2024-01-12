@@ -1,7 +1,6 @@
 import tensorflow as tf
 import argparse
 import numpy as np
-import matplotlib.pyplot as plt
 from cityflow_env_wrapper import CityflowEnvWrapper
 import time
 import os
